@@ -1,0 +1,254 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                         %
+%                      LAB: Praca z listami w Prologu                     %
+%                                                                         %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%% Sekcja 1: Notacja list i Unifikacja
+
+% Cel: Porównuje 3. i 4. element listy. Zwraca true, jeśli są równe.
+porownaj([_, _, Elem, Elem | _]).
+
+% Cel: Zamienia miejscami 3. i 4. element listy wejściowej (arg 1),
+%      zwracając nową listę w drugim argumencie.
+zamien([A, B, C, D | Reszta], [A, B, D, C | Reszta]).
+
+%% Sekcja 2: Przynależność do listy
+
+% Cel: Sprawdza, czy element X należy do listy (arg 2).
+nalezy(X, [X|_]).
+nalezy(X, [_|Ogon]) :-
+    nalezy(X, Ogon).
+
+%% Sekcja 3: Liczenie elementów
+
+% Cel: Oblicza długość listy (arg 1) i zwraca ją w argumencie 2.
+dlugosc([], 0).
+dlugosc([_|Ogon], Dlug) :-
+    dlugosc(Ogon, X),
+    Dlug is X + 1.
+
+%% Sekcja 4: Rekurencyjna analiza list
+
+% Cel: Predykat specyficzny - sprawdza/generuje listy składające się
+%      odpowiednio tylko z atomów 'a' i 'b', o tej samej długości.
+a2b([], []).
+a2b([a|Ta], [b|Tb]) :-
+    a2b(Ta, Tb).
+
+%% Sekcja 5: Sklejanie list (Append)
+
+% Cel: Skleja listę L1 (arg 1) z listą L2 (arg 2), tworząc listę L3 (arg 3).
+%      Działa też w innych trybach (np. podział listy).
+sklej([], X, X).
+sklej([X|L1], L2, [X|L3]) :-
+    sklej(L1, L2, L3).
+
+% Cel: Sprawdzenie przynależności elementu X do listy L za pomocą sklej/3.
+nalezy1(X, L) :-
+    sklej(_, [X|_], L).
+
+% Cel: Znalezienie ostatniego elementu E listy L.
+
+ostatni_sklej(E, L) :-
+    sklej(_, [E], L). % Działa dla list niepustych.
+
+% Wersja rekurencyjna bez sklej/3:
+ostatni(X, [X]).
+ostatni(X, [_|T]) :-
+    ostatni(X, T).
+
+%% Sekcja 6: Dodawanie elementów
+
+% Cel: Dodaje element X na początek listy L, tworząc nową listę [X|L].
+dodaj(X, L, [X|L]). % Rzadko definiowane, używa się [X|L].
+
+%% Sekcja 7: Usuwanie elementów
+
+% Cel: Usuwa pierwsze wystąpienie elementu X z listy Lista (arg 2),
+%      zwracając wynikową listę Reszta (arg 3).
+
+usun(X, [X|Reszta], Reszta).
+usun(X, [Y|Ogon], [Y|Reszta]) :-
+    % X \= Y, % Można dodać dla jednoznaczności, ale nie jest konieczne
+    usun(X, Ogon, Reszta).
+
+% Cel: Wstawia element X do listy L (arg 2) na dowolną pozycję,
+%      tworząc listę Duza (arg 3). Używa odwrotności usun/3.
+
+wstaw(X, L, Duza) :-
+    usun(X, Duza, L).
+
+% Cel: Sprawdza przynależność elementu X do listy L za pomocą usun/3.
+
+nalezy2(X, L) :-
+    usun(X, L, _).
+
+%% Sekcja 8: Zawieranie list
+
+% Cel: Sprawdza, czy lista S (arg 1) jest podlistą (ciągłym fragmentem) listy L (arg 2).
+
+zawiera(S, L) :-
+    sklej(_, L2, L),
+    sklej(S, _, L2).
+
+%% Sekcja 9: Permutacje list
+
+% Cel: Generuje permutacje P (arg 2) listy L (arg 1) metodą wstawiania.
+
+permutacja([], []).
+permutacja([X|L], P) :-
+    permutacja(L, L1),
+    wstaw(X, L1, P).
+
+% Cel: Generuje permutacje P (arg 2) listy L (arg 1) metodą usuwania.
+
+permutacja2([], []).
+permutacja2(L, [X|P]) :-
+    usun(X, L, L1),
+    permutacja2(L1, P).
+
+%% Sekcja 10: Odwracanie list (Wersja naiwna)
+
+% Cel: Odwraca listę (arg 1), zwracając wynik w argumencie 2.
+odwroc([], []).
+odwroc([H|T], L) :-
+    odwroc(T, R),
+    sklej(R, [H], L).
+
+%% Sekcja 11: Listy a napisy
+
+
+wypisz([]).
+wypisz([H|T]) :-
+    put_code(H),
+    wypisz(T).
+
+% Cel: Tworzy liczbę mnogą regularnego rzeczownika angielskiego przez dodanie 's'.
+plural(Noun, PL) :-
+    name(Noun, L),
+    name(s, Suffix),   % Suffix = [115]
+    append(L, Suffix, NL), % Używamy wbudowanego append/3
+    name(PL, NL).
+
+%% Sekcja: Efektywność odwracania list (Wersja z akumulatorem)
+
+% Cel: Efektywne (O(n)) odwracanie listy (arg 1), wynik w argumencie 2.
+odwroc2(L, R) :-
+    odwr2(L, [], R).
+
+% Predykat pomocniczy z akumulatorem (arg 2).
+odwr2([], A, A).
+odwr2([H|T], A, R) :-
+    odwr2(T, [H|A], R).
+
+%% Sekcja 12: Listy różnicowe
+
+% Cel: Skleja listę różnicową L-End (arg 1) ze zwykłą listą ListToAdd (arg 2),
+%      wynikiem jest pełna lista L (arg 3).
+sklej_roznicowo_1(L - End, ListToAdd, L) :-
+    End = ListToAdd.
+
+% Cel: Skleja dwie listy różnicowe: L1-End1 (arg 1) i End1-End2 (arg 2),
+%      wynikiem jest lista różnicowa L1-End2 (arg 3).
+sklej_roznicowo_2(L1 - End1, End1 - End2, L1 - End2).
+
+% Cel: Spłaszczenie listy zagnieżdżonej przy użyciu list różnicowych.
+% Wywołanie: ?- splaszcz_dr([[a],[b,[d]],c], Wynik-[]). => Wynik = [a, b, d, c].
+splaszcz_dr(X, L-End) :- splaszcz_dr_acc(X, L, End).
+
+splaszcz_dr_acc(Var, _, _) :- var(Var), !, fail. % Nie spłaszczamy zmiennych
+splaszcz_dr_acc([], L, L) :- !. % Pusta lista -> pusta lista różnicowa
+splaszcz_dr_acc([H|T], L, End) :- !, % Wejście jest listą
+    splaszcz_dr_acc(H, L, Mid),    % Spłaszcz głowę (wynik L-Mid)
+    splaszcz_dr_acc(T, Mid, End).  % Spłaszcz ogon (dołączając do Mid, wynik Mid-End)
+splaszcz_dr_acc(X, [X|End], End). % Element niebędący listą
+
+%% Sekcja 14: Problemy do samodzielnego rozwiązania
+
+% 1. Usunięcie 3 ostatnich elementów
+% Wymaga: sklej/3
+usun_3_ostatnie(L, L1) :-
+    sklej(L1, [_, _, _], L).
+
+% 2. Usunięcie 3 pierwszych elementów
+usun_3_pierwsze(L, L1) :-
+    L = [_, _, _ | L1].
+
+% 3. Usunięcie 3 pierwszych i 3 ostatnich elementów
+% Wymaga: sklej/3
+usun_3_pocz_i_konc(L, L2) :-
+    L = [_, _, _ | Reszta],
+    sklej(L2, [_, _, _], Reszta).
+
+% 4. Parzysta/Nieparzysta długość listy
+parzysta([]).
+parzysta([_,_|T]) :- parzysta(T).
+
+nieparzysta([_]).
+nieparzysta([_,_|T]) :- nieparzysta(T).
+
+% 5. Palindrom
+% Wymaga: odwroc2/2 (efektywne odwracanie)
+palindrom(L) :-
+    odwroc2(L, L).
+
+% 6. Przesunięcie rotacyjne o jeden element w lewo
+% Wymaga: append/3 (wbudowany) lub sklej/3
+przesun([], []).
+przesun([H|T], L2) :-
+    append(T, [H], L2).
+
+% 7. Przełożenie listy cyfr na listę słów
+% Fakty znaczeniowe (wymagane)
+znaczy(0,zero).  znaczy(1,jeden). znaczy(2,dwa).   znaczy(3,trzy).
+znaczy(4,cztery). znaczy(5,piec).  znaczy(6,szesc).  znaczy(7,siedem).
+znaczy(8,osiem). znaczy(9,dziewiec).
+
+% Predykat tłumaczący
+przeloz([], []).
+przeloz([Cyfra|ResztaCyfr], [Slowo|ResztaSlow]) :-
+    znaczy(Cyfra, Slowo),
+    przeloz(ResztaCyfr, ResztaSlow).
+
+% 8. Podzbiór (Generowanie/sprawdzanie)
+podzbior([], []).
+podzbior([H|T], [H|SubT]) :- podzbior(T, SubT).
+podzbior([_|T], SubT) :- podzbior(T, SubT).
+
+% 9. Podział listy na dwie części (elementy naprzemiennie)
+podziel([], [], []).
+podziel([X], [X], []).
+podziel([X,Y|T], [X|L1], [Y|L2]) :-
+    podziel(T, L1, L2).
+
+% 10. Spłaszczenie zagnieżdżonej listy
+% Wymaga: append/3 (wbudowany)
+splaszcz([], []).
+splaszcz([H|T], Wynik) :- !,
+    splaszcz(H, SplaszczonaH),
+    splaszcz(T, SplaszczonyT),
+    append(SplaszczonaH, SplaszczonyT, Wynik).
+splaszcz(X, [X]) :-
+    X \= [], % nie pusta lista
+    \+ is_list(X). % nie lista (w SWI-Prolog)
+
+% 11. Rozmienianie pieniędzy
+% Definicja nominałów (wymagane)
+moneta(5).
+moneta(2).
+moneta(1).
+% moneta(10). % etc.
+
+% Predykat rozmieniania
+rozmien(0, []).
+rozmien(Kwota, [M|ResztaMonet]) :-
+    Kwota > 0,
+    moneta(M),
+    PozostalaKwota is Kwota - M,
+    PozostalaKwota >= 0,
+    rozmien(PozostalaKwota, ResztaMonet),
+    % Opcjonalnie - wymuszenie porządku malejącego dla unikalności rozwiązań
+    ( ResztaMonet = [] ; ResztaMonet = [KolejnaM|_], M >= KolejnaM ).
+
